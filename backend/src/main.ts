@@ -1,14 +1,48 @@
 import { NestFactory } from '@nestjs/core';
 import { ValidationPipe } from '@nestjs/common';
 import { DocumentBuilder, SwaggerModule } from '@nestjs/swagger';
+import { ConfigService } from '@nestjs/config';
+import helmet from 'helmet';
+import * as compression from 'compression';
+import { Logger } from 'nestjs-pino';
 import { AppModule } from './app.module';
 
 async function bootstrap() {
-  const app = await NestFactory.create(AppModule);
+  const app = await NestFactory.create(AppModule, {
+    bufferLogs: true,
+  });
+
+  // Usar Pino Logger
+  app.useLogger(app.get(Logger));
+
+  const configService = app.get(ConfigService);
+
+  // Configurar prefixo global
+  app.setGlobalPrefix('api/v1');
+
+  // Configurar segurança
+  app.use(helmet({
+    crossOriginEmbedderPolicy: false,
+    contentSecurityPolicy: {
+      directives: {
+        imgSrc: [`'self'`, 'data:', 'apollo-server-landing-page.cdn.apollographql.com'],
+        scriptSrc: [`'self'`],
+        manifestSrc: [`'self'`, 'apollo-server-landing-page.cdn.apollographql.com'],
+        frameSrc: [`'self'`, 'apollo-server-landing-page.cdn.apollographql.com'],
+      },
+    },
+  }));
+
+  // Configurar compressão
+  app.use(compression());
 
   // Configurar CORS
+  const allowedOrigins = configService.get<string>('ALLOWED_ORIGINS')?.split(',') || [
+    configService.get<string>('CORS_ORIGIN', 'http://localhost:5173'),
+  ];
+
   app.enableCors({
-    origin: process.env.CORS_ORIGIN || 'http://localhost:5173',
+    origin: allowedOrigins,
     methods: ['GET', 'POST', 'PUT', 'DELETE', 'PATCH', 'OPTIONS'],
     allowedHeaders: ['Content-Type', 'Authorization'],
     credentials: true,
@@ -23,14 +57,16 @@ async function bootstrap() {
       transformOptions: {
         enableImplicitConversion: true,
       },
+      disableErrorMessages: configService.get('NODE_ENV') === 'production',
     }),
   );
 
   // Configurar Swagger
   const config = new DocumentBuilder()
-    .setTitle(process.env.SWAGGER_TITLE || 'Le Torneadora API')
-    .setDescription(process.env.SWAGGER_DESCRIPTION || 'API robusta para o portal do cliente')
-    .setVersion(process.env.SWAGGER_VERSION || '1.0.0')
+    .setTitle(configService.get('SWAGGER_TITLE', 'Le Torneadora API'))
+    .setDescription(configService.get('SWAGGER_DESCRIPTION', 'API robusta para o portal do cliente'))
+    .setVersion(configService.get('SWAGGER_VERSION', '1.0.0'))
+    .addServer('/api/v1', 'API v1')
     .addBearerAuth(
       {
         type: 'http',
@@ -42,9 +78,18 @@ async function bootstrap() {
       },
       'JWT-auth',
     )
+    .addTag('health', 'Health checks')
     .addTag('auth', 'Autenticação e autorização')
+    .addTag('profiles', 'Gestão de perfis de usuário')
     .addTag('products', 'Gestão de produtos')
+    .addTag('categories', 'Gestão de categorias')
+    .addTag('product-images', 'Gestão de imagens de produtos')
+    .addTag('inventory', 'Gestão de estoque')
+    .addTag('quotes', 'Gestão de orçamentos')
     .addTag('orders', 'Gestão de pedidos')
+    .addTag('order-items', 'Itens de pedidos')
+    .addTag('tickets', 'Sistema de suporte')
+    .addTag('audit-logs', 'Logs de auditoria')
     .build();
 
   const document = SwaggerModule.createDocument(app, config);
@@ -53,14 +98,20 @@ async function bootstrap() {
       persistAuthorization: true,
       tagsSorter: 'alpha',
       operationsSorter: 'alpha',
+      docExpansion: 'none',
+      filter: true,
+      showRequestDuration: true,
     },
+    customSiteTitle: 'Le Torneadora API Documentation',
   });
 
-  const port = process.env.PORT || 3001;
+  const port = configService.get('PORT', 3001);
   await app.listen(port, '0.0.0.0');
   
-  console.log(`🚀 Servidor rodando em http://localhost:${port}`);
-  console.log(`📚 Swagger disponível em http://localhost:${port}/api/docs`);
+  const logger = app.get(Logger);
+  logger.log(`🚀 Servidor rodando em http://localhost:${port}`);
+  logger.log(`📚 Swagger disponível em http://localhost:${port}/api/docs`);
+  logger.log(`🏥 Health check disponível em http://localhost:${port}/api/v1/health`);
 }
 
 bootstrap();
