@@ -1,0 +1,1 @@
+import { Typography } from 'antd'; const { Title } = Typography; const SupportPage = () => { return <div className="container mx-auto px-4 py-8"><Title level={1}>Support</Title><p>Página em desenvolvimento...</p></div> }; export default SupportPage
