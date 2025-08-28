@@ -1,0 +1,23 @@
+# Global owners
+* @Nicolas-Assis
+
+# Backend specific
+/backend/ @Nicolas-Assis
+/backend/src/ @Nicolas-Assis
+/backend/package.json @Nicolas-Assis
+/backend/Dockerfile @Nicolas-Assis
+
+# Database and migrations
+/database/ @Nicolas-Assis
+/backend/src/migrations/ @Nicolas-Assis
+
+# CI/CD and configuration
+/.github/ @Nicolas-Assis
+/backend/.env.example @Nicolas-Assis
+/backend/docker-compose*.yml @Nicolas-Assis
+
+# Documentation
+/README.md @Nicolas-Assis
+/backend/README.md @Nicolas-Assis
+*.md @Nicolas-Assis
+
