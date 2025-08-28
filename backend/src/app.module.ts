@@ -16,6 +16,8 @@ import { getDatabaseConfig } from './config/database.config';
 import { AuthModule } from './auth/auth.module';
 import { ProductsModule } from './products/products.module';
 import { CategoriesModule } from './categories/categories.module';
+import { ProductImagesModule } from './product-images/product-images.module';
+import { InventoryModule } from './inventory/inventory.module';
 import { OrdersModule } from './orders/orders.module';
 import { HealthModule } from './health/health.module';
 import { StorageModule } from './storage/storage.module';
@@ -90,6 +92,8 @@ import { TimeoutInterceptor } from './common/interceptors/timeout.interceptor';
     AuthModule,
     ProductsModule,
     CategoriesModule,
+    ProductImagesModule,
+    InventoryModule,
     OrdersModule,
     StorageModule,
   ],
