@@ -1,130 +1,108 @@
-import { Module } from '@nestjs/common';
+import { Module, OnModuleInit, Logger } from '@nestjs/common';
 import { ConfigModule, ConfigService } from '@nestjs/config';
-import { TypeOrmModule } from '@nestjs/typeorm';
-import { ThrottlerModule } from '@nestjs/throttler';
+import { TypeOrmModule, TypeOrmModuleOptions } from '@nestjs/typeorm';
+import { v4 as uuidv4 } from 'uuid';
 import { LoggerModule } from 'nestjs-pino';
-import { APP_FILTER, APP_INTERCEPTOR, APP_GUARD } from '@nestjs/core';
 
-import { AppController } from './app.controller';
-import { AppService } from './app.service';
-
-// Configurações
-import { validateEnv } from './config/env.validation';
-import { getDatabaseConfig } from './config/database.config';
-
-// Módulos
-import { AuthModule } from './auth/auth.module';
-import { ProfilesModule } from './profiles/profiles.module';
-import { AuditLogsModule } from './audit-logs/audit-logs.module';
-import { ProductsModule } from './products/products.module';
-import { CategoriesModule } from './categories/categories.module';
-import { ProductImagesModule } from './product-images/product-images.module';
-import { InventoryModule } from './inventory/inventory.module';
-import { QuotesModule } from './quotes/quotes.module';
-import { OrdersModule } from './orders/orders.module';
-import { TicketsModule } from './tickets/tickets.module';
-import { HealthModule } from './health/health.module';
-import { StorageModule } from './storage/storage.module';
-
-// Filtros e Interceptors
-import { AllExceptionsFilter } from './common/filters/all-exceptions.filter';
-import { LoggingInterceptor } from './common/interceptors/logging.interceptor';
-import { TransformInterceptor } from './common/interceptors/transform.interceptor';
-import { TimeoutInterceptor } from './common/interceptors/timeout.interceptor';
+import { ApiModule } from './api/api.module';
+// import { FirebaseModule } from './api/auth/firebase/firebase.module';
+import { ServiceModule } from './services/service.module';
+import entities from './api/entities';
+// import configs, { Database } from './configs';
+// import { PgListenerService } from './pg-listener.service';
 
 @Module({
   imports: [
-    // Configuração global
     ConfigModule.forRoot({
       isGlobal: true,
-      envFilePath: '.env',
-      validate: validateEnv,
+      envFilePath: '.env', // garante leitura do .env na raiz do backend
+      // load: [configs],
     }),
-
-    // Logger
-    LoggerModule.forRootAsync({
-      useFactory: (configService: ConfigService) => ({
-        pinoHttp: {
-          level: configService.get('NODE_ENV') === 'production' ? 'info' : 'debug',
-          transport: configService.get('NODE_ENV') === 'development' ? {
-            target: 'pino-pretty',
-            options: {
-              colorize: true,
-              singleLine: true,
-              translateTime: 'SYS:standard',
-            },
-          } : undefined,
-          serializers: {
-            req: (req) => ({
-              method: req.method,
-              url: req.url,
-              headers: {
-                'user-agent': req.headers['user-agent'],
-                'content-type': req.headers['content-type'],
-              },
-            }),
-            res: (res) => ({
-              statusCode: res.statusCode,
-            }),
-          },
-        },
-      }),
-      inject: [ConfigService],
-    }),
-
-    // Rate Limiting
-    ThrottlerModule.forRootAsync({
-      useFactory: (configService: ConfigService) => ({
-        throttlers: [
-          {
-            ttl: 60000, // 1 minuto
-            limit: configService.get('NODE_ENV') === 'production' ? 100 : 1000,
-          },
-        ],
-      }),
-      inject: [ConfigService],
-    }),
-
-    // Database
     TypeOrmModule.forRootAsync({
-      useFactory: getDatabaseConfig,
+      imports: [ConfigModule],
       inject: [ConfigService],
+      useFactory: (configService: ConfigService): TypeOrmModuleOptions => {
+        // logs temporários
+        console.log('process.cwd():', process.cwd());
+        console.log('env DATABASE_URL:', process.env.DATABASE_URL);
+
+        // prefer DATABASE_URL when set
+        const dbUrl = configService.get<string>('DATABASE_URL') ?? process.env.DATABASE_URL;
+        if (dbUrl) {
+          return {
+            type: 'postgres',
+            url: dbUrl,
+            synchronize: false,
+            autoLoadEntities: true,
+            logging: true,
+            ssl: false,
+            entities,
+          };
+        }
+
+        // use individual vars
+        const host = configService.get<string>('DATABASE_HOST') ?? process.env.DATABASE_HOST ?? '';
+        const port = Number(
+          configService.get<number>('DATABASE_PORT') ?? process.env.DATABASE_PORT ?? 5432,
+        );
+        const username =
+          configService.get<string>('DATABASE_USERNAME') ?? process.env.DATABASE_USERNAME;
+        const password =
+          configService.get<string>('DATABASE_PASSWORD') ?? process.env.DATABASE_PASSWORD;
+        const databaseName =
+          configService.get<string>('DATABASE_NAME') ?? process.env.DATABASE_NAME;
+
+        console.log(
+          'TypeOrm useFactory - host, user, passwordPresent:',
+          host,
+          username,
+          !!password,
+        );
+
+        return {
+          type: 'postgres',
+          host,
+          port,
+          username,
+          password: password as any, // ensure string
+          database: databaseName,
+          synchronize: false,
+          autoLoadEntities: true,
+          logging: true,
+          ssl: false,
+          entities: [__dirname + '/**/*.entity{.ts,.js}'],
+          extra: { retryAttempts: 3, timezone: 'Z' },
+        };
+      },
     }),
-
-    // Módulos da aplicação
-    HealthModule,
-    AuthModule,
-    ProfilesModule,
-    AuditLogsModule,
-    ProductsModule,
-    CategoriesModule,
-    ProductImagesModule,
-    InventoryModule,
-    QuotesModule,
-    OrdersModule,
-    TicketsModule,
-    StorageModule,
+    LoggerModule.forRoot({
+      pinoHttp: {
+        genReqId: () => uuidv4().toString(),
+        name: 'le-torneadora-api',
+        level: process.env.NODE_ENV !== 'production' ? 'debug' : 'info',
+        formatters: {
+          level: (label) => ({ level: label }),
+        },
+        redact: ['req.headers.authorization', 'req.headers.cookie'],
+      },
+    }),
+    // FirebaseModule,
+    ServiceModule,
+    ApiModule,
   ],
-  controllers: [AppController],
-  providers: [
-    AppService,
-    {
-      provide: APP_FILTER,
-      useClass: AllExceptionsFilter,
-    },
-    {
-      provide: APP_INTERCEPTOR,
-      useClass: LoggingInterceptor,
-    },
-    {
-      provide: APP_INTERCEPTOR,
-      useClass: TimeoutInterceptor,
-    },
-    {
-      provide: APP_INTERCEPTOR,
-      useClass: TransformInterceptor,
-    },
-  ],
+  controllers: [],
+  // providers: [ApiModule, PgListenerService],
+  exports: [],
 })
-export class AppModule {}
+export class AppModule implements OnModuleInit {
+  private readonly logger = new Logger(AppModule.name);
 
+  constructor() {
+    // este construtor é executado durante a bootstrap dos módulos
+    this.logger.log('AppModule.constructor');
+  }
+
+  onModuleInit() {
+    this.logger.log('AppModule.onModuleInit');
+  }
+}

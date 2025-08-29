@@ -6,24 +6,11 @@
     "emitDecoratorMetadata": true,
     "experimentalDecorators": true,
     "allowSyntheticDefaultImports": true,
-    "target": "ES2021",
+    "target": "es2017",
     "sourceMap": true,
     "outDir": "./dist",
     "baseUrl": "./",
     "incremental": true,
-    "skipLibCheck": true,
-    "strictNullChecks": false,
-    "noImplicitAny": false,
-    "strictBindCallApply": false,
-    "forceConsistentCasingInFileNames": false,
-    "noFallthroughCasesInSwitch": false,
-    "paths": {
-      "@/*": ["src/*"],
-      "@/auth/*": ["src/auth/*"],
-      "@/products/*": ["src/products/*"],
-      "@/orders/*": ["src/orders/*"],
-      "@/common/*": ["src/common/*"]
-    }
+    "esModuleInterop": true
   }
 }
-

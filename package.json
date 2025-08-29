@@ -18,6 +18,7 @@
     "test": "npm run test:backend && npm run test:frontend",
     "test:backend": "cd backend && npm test",
     "test:frontend": "cd frontend && npm test"
+    
   },
   "devDependencies": {
     "concurrently": "^8.2.2"
@@ -27,6 +28,8 @@
     "npm": ">=8.0.0"
   },
   "author": "Le Torneadora",
-  "license": "MIT"
+  "license": "MIT",
+  "dependencies": {
+    "@nestjs/terminus": "^11.0.0"
+  }
 }
-
