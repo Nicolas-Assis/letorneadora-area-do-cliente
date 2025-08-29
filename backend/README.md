@@ -174,6 +174,19 @@ Responsável pela autenticação e autorização de usuários.
 - `POST /auth/validate` - Validação de token
 - `GET /auth/stats` - Estatísticas de autenticação
 
+#### 👤 Profiles Module
+Gerenciamento completo de perfis de usuário conectado ao Supabase.
+
+**Endpoints:**
+- `GET /profiles` - Listar perfis com filtros
+- `POST /profiles` - Criar novo perfil
+- `GET /profiles/:id` - Obter perfil específico
+- `PATCH /profiles/:id` - Atualizar perfil
+- `PATCH /profiles/:id/activate` - Ativar perfil
+- `PATCH /profiles/:id/deactivate` - Desativar perfil
+- `DELETE /profiles/:id` - Remover perfil
+- `GET /profiles/stats` - Estatísticas de perfis
+
 #### 🛍️ Products Module
 Gerenciamento completo do catálogo de produtos.
 
@@ -183,18 +196,99 @@ Gerenciamento completo do catálogo de produtos.
 - `GET /products/:id` - Obter produto específico
 - `PATCH /products/:id` - Atualizar produto
 - `DELETE /products/:id` - Remover produto
-- `GET /products/categories` - Listar categorias
 - `GET /products/stats` - Estatísticas de produtos
 
+#### 🏷️ Categories Module
+Sistema de categorias hierárquicas para produtos.
+
+**Endpoints:**
+- `GET /categories` - Listar categorias com filtros
+- `POST /categories` - Criar nova categoria
+- `GET /categories/:id` - Obter categoria específica
+- `PATCH /categories/:id` - Atualizar categoria
+- `DELETE /categories/:id` - Remover categoria
+- `GET /categories/tree` - Árvore de categorias
+
+#### 🖼️ Product Images Module
+Upload e gestão de imagens de produtos no Supabase Storage.
+
+**Endpoints:**
+- `GET /product-images` - Listar imagens com filtros
+- `POST /product-images/upload` - Upload de imagem
+- `GET /product-images/:id` - Obter imagem específica
+- `DELETE /product-images/:id` - Remover imagem
+- `PATCH /product-images/:id/set-primary` - Definir como principal
+
+#### 📦 Inventory Module
+Controle de estoque por produto e armazém.
+
+**Endpoints:**
+- `GET /inventory` - Listar estoque com filtros
+- `POST /inventory` - Criar registro de estoque
+- `GET /inventory/:id` - Obter registro específico
+- `PATCH /inventory/:id` - Atualizar estoque
+- `DELETE /inventory/:id` - Remover registro
+- `GET /inventory/low-stock` - Produtos com estoque baixo
+
+#### 💰 Quotes Module
+Sistema de orçamentos com fluxo de aprovação.
+
+**Endpoints:**
+- `GET /quotes` - Listar orçamentos com filtros
+- `POST /quotes` - Criar novo orçamento
+- `GET /quotes/:id` - Obter orçamento específico
+- `PATCH /quotes/:id` - Atualizar orçamento
+- `PATCH /quotes/:id/submit` - Enviar orçamento
+- `PATCH /quotes/:id/approve` - Aprovar orçamento
+- `PATCH /quotes/:id/reject` - Rejeitar orçamento
+- `DELETE /quotes/:id` - Remover orçamento
+
 #### 📋 Orders Module
-Sistema de pedidos e orçamentos.
+Sistema de pedidos com fluxo de produção completo.
 
 **Endpoints:**
 - `GET /orders` - Listar pedidos com filtros
-- `POST /orders` - Criar novo pedido/orçamento
+- `POST /orders` - Criar novo pedido
 - `GET /orders/:id` - Obter pedido específico
-- `PATCH /orders/:id/status` - Atualizar status
-- `GET /orders/stats` - Estatísticas de pedidos
+- `PATCH /orders/:id` - Atualizar pedido
+- `PATCH /orders/:id/confirm` - Confirmar pedido
+- `PATCH /orders/:id/start-production` - Iniciar produção
+- `PATCH /orders/:id/mark-ready` - Marcar como pronto
+- `PATCH /orders/:id/ship` - Enviar pedido
+- `PATCH /orders/:id/deliver` - Entregar pedido
+- `PATCH /orders/:id/cancel` - Cancelar pedido
+
+#### 🎫 Tickets Module
+Sistema de suporte ao cliente com mensagens.
+
+**Endpoints:**
+- `GET /tickets` - Listar tickets com filtros
+- `POST /tickets` - Criar novo ticket
+- `GET /tickets/:id` - Obter ticket específico
+- `PATCH /tickets/:id` - Atualizar ticket
+- `POST /tickets/:id/messages` - Adicionar mensagem
+- `PATCH /tickets/:id/assign` - Atribuir ticket
+- `PATCH /tickets/:id/progress` - Marcar em progresso
+- `PATCH /tickets/:id/resolve` - Resolver ticket
+- `PATCH /tickets/:id/close` - Fechar ticket
+- `PATCH /tickets/:id/reopen` - Reabrir ticket
+
+#### 📊 Audit Logs Module
+Sistema de auditoria para rastreamento de ações.
+
+**Endpoints:**
+- `GET /audit-logs` - Listar logs com filtros
+- `POST /audit-logs` - Criar log de auditoria
+- `GET /audit-logs/:id` - Obter log específico
+- `GET /audit-logs/stats` - Estatísticas de auditoria
+
+#### 🏥 Health Module
+Health checks para monitoramento da aplicação.
+
+**Endpoints:**
+- `GET /health` - Status geral da aplicação
+- `GET /health/database` - Status do banco de dados
+- `GET /health/storage` - Status do storage
 
 ### DTOs e Validação
 

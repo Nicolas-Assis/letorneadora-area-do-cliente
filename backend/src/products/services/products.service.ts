@@ -8,7 +8,7 @@ import { UpdateProductDto } from '../dto/update-product.dto';
 import { FilterProductsDto } from '../dto/filter-products.dto';
 import { ProductDto } from '../dto/product.dto';
 import { ProductFactory } from '../factories/product.factory';
-import { PaginatedResponseDto, createPaginationMeta } from '../../common/dto/base-response.dto';
+import { PaginatedResponseDto } from '../../common/dto/base-response.dto';
 
 @Injectable()
 export class ProductsService {
