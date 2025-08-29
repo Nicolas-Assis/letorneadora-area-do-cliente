@@ -14,6 +14,8 @@ import { getDatabaseConfig } from './config/database.config';
 
 // Módulos
 import { AuthModule } from './auth/auth.module';
+import { ProfilesModule } from './profiles/profiles.module';
+import { AuditLogsModule } from './audit-logs/audit-logs.module';
 import { ProductsModule } from './products/products.module';
 import { CategoriesModule } from './categories/categories.module';
 import { ProductImagesModule } from './product-images/product-images.module';
@@ -92,6 +94,8 @@ import { TimeoutInterceptor } from './common/interceptors/timeout.interceptor';
     // Módulos da aplicação
     HealthModule,
     AuthModule,
+    ProfilesModule,
+    AuditLogsModule,
     ProductsModule,
     CategoriesModule,
     ProductImagesModule,
