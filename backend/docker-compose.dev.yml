@@ -1,0 +1,69 @@
+version: '3.8'
+
+services:
+  app:
+    build:
+      context: .
+      dockerfile: Dockerfile
+      target: builder
+    container_name: letorneadora-backend-dev
+    ports:
+      - '3001:3001'
+    environment:
+      - NODE_ENV=development
+      - PORT=3001
+    env_file:
+      - .env
+    volumes:
+      - .:/app
+      - /app/node_modules
+    command: npm run start:dev
+    depends_on:
+      - postgres
+      - redis
+    networks:
+      - letorneadora-network
+
+  postgres:
+    image: postgres:15-alpine
+    container_name: letorneadora-postgres-dev
+    ports:
+      - '5432:5432'
+    environment:
+      POSTGRES_DB: letorneadora_dev
+      POSTGRES_USER: postgres
+      POSTGRES_PASSWORD: postgres
+    volumes:
+      - postgres_data:/var/lib/postgresql/data
+      - ./database/init.sql:/docker-entrypoint-initdb.d/init.sql
+    networks:
+      - letorneadora-network
+
+  redis:
+    image: redis:7-alpine
+    container_name: letorneadora-redis-dev
+    ports:
+      - '6379:6379'
+    volumes:
+      - redis_data:/data
+    networks:
+      - letorneadora-network
+
+  adminer:
+    image: adminer:latest
+    container_name: letorneadora-adminer-dev
+    ports:
+      - '8080:8080'
+    depends_on:
+      - postgres
+    networks:
+      - letorneadora-network
+
+volumes:
+  postgres_data:
+  redis_data:
+
+networks:
+  letorneadora-network:
+    driver: bridge
+
