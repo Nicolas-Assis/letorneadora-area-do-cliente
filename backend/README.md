@@ -1,8 +1,8 @@
-# Le Torneadora - Backend NestJS
+# 🔧 Le Torneadora Backend API
 
 ## 🚀 Visão Geral
 
-Este é o backend robusto e escalável da **Le Torneadora**, desenvolvido com **NestJS**, **TypeScript** e **Swagger**. A API foi projetada seguindo as melhores práticas de arquitetura enterprise, oferecendo uma base sólida para o portal do cliente e futuras expansões.
+Este é o backend robusto e escalável da **Le Torneadora**, desenvolvido com **NestJS**, **TypeScript**, **Firebase Auth** e **Swagger**. A API foi projetada seguindo as melhores práticas de arquitetura enterprise, oferecendo uma base sólida para o portal do cliente com autenticação moderna e sistema de pagamentos integrado.
 
 ## 📋 Índice
 
@@ -10,29 +10,33 @@ Este é o backend robusto e escalável da **Le Torneadora**, desenvolvido com **
 - [Tecnologias Utilizadas](#tecnologias-utilizadas)
 - [Arquitetura](#arquitetura)
 - [Instalação e Configuração](#instalação-e-configuração)
-- [Estrutura do Projeto](#estrutura-do-projeto)
+- [Autenticação Firebase](#autenticação-firebase)
+- [Sistema RBAC](#sistema-rbac)
+- [Integração de Pagamentos](#integração-de-pagamentos)
 - [API Endpoints](#api-endpoints)
-- [Autenticação](#autenticação)
-- [Validação e DTOs](#validação-e-dtos)
-- [Tratamento de Erros](#tratamento-de-erros)
-- [Logging](#logging)
-- [Testes](#testes)
+- [Estrutura do Projeto](#estrutura-do-projeto)
 - [Deploy](#deploy)
 - [Contribuição](#contribuição)
 
 ## ✨ Características Principais
 
 ### 🏗️ **Arquitetura Enterprise**
-- **Modular**: Organizado em módulos independentes (auth, products, orders)
+- **Modular**: Organizado em módulos independentes (auth, products, orders, payments)
 - **Escalável**: Estrutura preparada para crescimento
 - **Manutenível**: Código limpo e bem documentado
 - **Testável**: Arquitetura que facilita testes unitários e de integração
 
-### 🔒 **Segurança Robusta**
-- Validação automática de dados com `class-validator`
-- Filtros de exceção globais
-- CORS configurado para frontend
-- Estrutura preparada para JWT e autenticação
+### 🔒 **Autenticação Moderna com Firebase**
+- **Firebase Admin SDK** para validação de tokens
+- **RBAC** (Role-Based Access Control) com 3 níveis: Admin, Operator, Client
+- Guards personalizados para proteção de rotas
+- Validação automática de tokens ID do Firebase
+
+### 💳 **Sistema de Pagamentos Integrado**
+- **Asaas** como gateway de pagamento
+- Suporte a PIX, Boleto e Cartão de Crédito
+- Webhooks para atualização automática de status
+- Checkout seguro com validação de assinatura
 
 ### 📚 **Documentação Automática**
 - **Swagger UI** integrado em `/api/docs`
@@ -40,768 +44,355 @@ Este é o backend robusto e escalável da **Le Torneadora**, desenvolvido com **
 - Exemplos de request/response
 - Schemas automáticos dos DTOs
 
-### 🎯 **Performance Otimizada**
-- Interceptors para logging e transformação
-- Paginação eficiente
-- Filtros avançados
-- Respostas padronizadas
-
 ## 🛠️ Tecnologias Utilizadas
 
-| Tecnologia | Versão | Descrição |
-|------------|--------|-----------|
-| **NestJS** | ^10.0.0 | Framework Node.js enterprise |
-| **TypeScript** | ^5.1.3 | Linguagem tipada |
-| **Swagger** | ^7.1.8 | Documentação automática |
-| **class-validator** | ^0.14.0 | Validação de DTOs |
-| **class-transformer** | ^0.5.1 | Transformação de dados |
-| **rxjs** | ^7.8.1 | Programação reativa |
+### **Core Framework**
+- **NestJS** - Framework Node.js enterprise
+- **TypeScript** - Tipagem estática
+- **Express** - Servidor HTTP
+
+### **Autenticação & Autorização**
+- **Firebase Admin SDK** - Autenticação moderna
+- **Custom Guards** - Proteção de rotas
+- **RBAC** - Controle de acesso baseado em roles
+
+### **Pagamentos**
+- **Asaas API** - Gateway de pagamento brasileiro
+- **Axios** - Cliente HTTP para integração
+- **Crypto** - Validação de webhooks
+
+### **Database & ORM**
+- **TypeORM** - ORM robusto
+- **PostgreSQL** - Banco de dados principal
+- **Supabase** - Backend-as-a-Service
+
+### **Documentação & Validação**
+- **Swagger/OpenAPI** - Documentação automática
+- **Class-validator** - Validação de dados
+- **Class-transformer** - Transformação de objetos
 
 ## 🏛️ Arquitetura
 
-### Estrutura Modular
-
 ```
 src/
-├── auth/                 # Módulo de autenticação
-│   ├── dto/             # Data Transfer Objects
-│   ├── auth.controller.ts
+├── api/
+│   ├── auth/
+│   │   ├── guards/
+│   │   │   ├── firebase-auth.guard.ts
+│   │   │   └── roles.guard.ts
+│   │   ├── decorators/
+│   │   │   └── roles.decorator.ts
+│   │   └── enums/
+│   │       └── role.enum.ts
+│   ├── controllers/
+│   │   ├── auth.controller.ts
+│   │   ├── products.controller.ts
+│   │   ├── orders.controller.ts
+│   │   └── payments.controller.ts
+│   ├── dto/
+│   ├── entities/
+│   └── api.module.ts
+├── services/
 │   ├── auth.service.ts
-│   └── auth.module.ts
-├── products/            # Módulo de produtos
-│   ├── dto/
-│   ├── products.controller.ts
+│   ├── asaas.service.ts
 │   ├── products.service.ts
-│   └── products.module.ts
-├── orders/              # Módulo de pedidos
-│   ├── dto/
-│   ├── orders.controller.ts
-│   ├── orders.service.ts
-│   └── orders.module.ts
-├── common/              # Recursos compartilhados
-│   ├── dto/             # DTOs base
-│   ├── entities/        # Entidades
-│   ├── filters/         # Filtros de exceção
-│   └── interceptors/    # Interceptors
-├── app.module.ts        # Módulo principal
-└── main.ts             # Ponto de entrada
+│   └── orders.service.ts
+└── main.ts
 ```
 
-### Padrões Implementados
+## 🔧 Instalação e Configuração
 
-- **Repository Pattern**: Para acesso a dados
-- **DTO Pattern**: Para validação e transferência
-- **Factory Pattern**: Para criação de entidades
-- **Interceptor Pattern**: Para logging e transformação
-- **Filter Pattern**: Para tratamento de exceções
-
-## 🚀 Instalação e Configuração
-
-### Pré-requisitos
-
-- Node.js 18+ 
+### **1. Pré-requisitos**
+- Node.js 18+
 - npm ou yarn
-- Git
+- PostgreSQL
+- Conta Firebase
+- Conta Asaas (sandbox/produção)
 
-### Passos de Instalação
-
-1. **Clone o repositório**
+### **2. Instalação**
 ```bash
+# Clonar repositório
 git clone <repository-url>
-cd le-torneadora/backend
-```
+cd backend
 
-2. **Instale as dependências**
-```bash
-# Com npm
+# Instalar dependências
 npm install
 
-# Com yarn
-yarn install
-```
-
-3. **Configure as variáveis de ambiente**
-```bash
+# Configurar variáveis de ambiente
 cp .env.example .env
 ```
 
-Edite o arquivo `.env`:
+### **3. Configuração do Firebase**
+
+1. Acesse o [Console Firebase](https://console.firebase.google.com)
+2. Crie um novo projeto ou use existente
+3. Vá em "Configurações do projeto" > "Contas de serviço"
+4. Gere uma nova chave privada
+5. Configure as variáveis no `.env`:
+
 ```env
-# Configurações da aplicação
-PORT=3002
-NODE_ENV=development
-
-# Configurações do banco (quando implementado)
-DATABASE_URL=your_database_url
-SUPABASE_URL=your_supabase_url
-SUPABASE_ANON_KEY=your_supabase_key
-
-# Configurações de autenticação
-JWT_SECRET=your_jwt_secret
-JWT_EXPIRES_IN=7d
-
-# Configurações de CORS
-FRONTEND_URL=http://localhost:5173
+FIREBASE_PROJECT_ID=seu-projeto-firebase
+FIREBASE_PRIVATE_KEY="-----BEGIN PRIVATE KEY-----\nSUA_CHAVE_PRIVADA_AQUI\n-----END PRIVATE KEY-----\n"
+FIREBASE_CLIENT_EMAIL=firebase-adminsdk-xxxxx@seu-projeto-firebase.iam.gserviceaccount.com
 ```
 
-4. **Execute a aplicação**
+### **4. Configuração do Asaas**
+
+1. Acesse [Asaas](https://www.asaas.com)
+2. Crie uma conta e obtenha sua API Key
+3. Configure as variáveis no `.env`:
+
+```env
+ASAAS_API_KEY=sua-chave-api-asaas
+ASAAS_ENV=sandbox  # ou production
+ASAAS_WEBHOOK_SECRET=seu-secret-webhook-asaas
+```
+
+### **5. Executar**
 ```bash
 # Desenvolvimento
 npm run start:dev
-# ou
-yarn start:dev
 
 # Produção
+npm run build
 npm run start:prod
-# ou
-yarn start:prod
 ```
 
-5. **Acesse a documentação**
-- API: `http://localhost:3002`
-- Swagger: `http://localhost:3002/api/docs`
+## 🔐 Autenticação Firebase
 
-## 📁 Estrutura do Projeto
+### **Fluxo de Autenticação**
 
-### Módulos Principais
+1. **Frontend**: Usuário faz login via Firebase Auth
+2. **Frontend**: Obtém ID Token do Firebase
+3. **Frontend**: Envia token no header `Authorization: Bearer <idToken>`
+4. **Backend**: Valida token via Firebase Admin SDK
+5. **Backend**: Extrai informações do usuário e role
+6. **Backend**: Permite acesso baseado no RBAC
 
-#### 🔐 Auth Module
-Responsável pela autenticação e autorização de usuários.
-
-**Endpoints:**
-- `POST /auth/login` - Login de usuário
-- `POST /auth/register` - Registro de novo usuário
-- `POST /auth/validate` - Validação de token
-- `GET /auth/stats` - Estatísticas de autenticação
-
-#### 👤 Profiles Module
-Gerenciamento completo de perfis de usuário conectado ao Supabase.
-
-**Endpoints:**
-- `GET /profiles` - Listar perfis com filtros
-- `POST /profiles` - Criar novo perfil
-- `GET /profiles/:id` - Obter perfil específico
-- `PATCH /profiles/:id` - Atualizar perfil
-- `PATCH /profiles/:id/activate` - Ativar perfil
-- `PATCH /profiles/:id/deactivate` - Desativar perfil
-- `DELETE /profiles/:id` - Remover perfil
-- `GET /profiles/stats` - Estatísticas de perfis
-
-#### 🛍️ Products Module
-Gerenciamento completo do catálogo de produtos.
-
-**Endpoints:**
-- `GET /products` - Listar produtos com filtros
-- `POST /products` - Criar novo produto
-- `GET /products/:id` - Obter produto específico
-- `PATCH /products/:id` - Atualizar produto
-- `DELETE /products/:id` - Remover produto
-- `GET /products/stats` - Estatísticas de produtos
-
-#### 🏷️ Categories Module
-Sistema de categorias hierárquicas para produtos.
-
-**Endpoints:**
-- `GET /categories` - Listar categorias com filtros
-- `POST /categories` - Criar nova categoria
-- `GET /categories/:id` - Obter categoria específica
-- `PATCH /categories/:id` - Atualizar categoria
-- `DELETE /categories/:id` - Remover categoria
-- `GET /categories/tree` - Árvore de categorias
-
-#### 🖼️ Product Images Module
-Upload e gestão de imagens de produtos no Supabase Storage.
-
-**Endpoints:**
-- `GET /product-images` - Listar imagens com filtros
-- `POST /product-images/upload` - Upload de imagem
-- `GET /product-images/:id` - Obter imagem específica
-- `DELETE /product-images/:id` - Remover imagem
-- `PATCH /product-images/:id/set-primary` - Definir como principal
-
-#### 📦 Inventory Module
-Controle de estoque por produto e armazém.
-
-**Endpoints:**
-- `GET /inventory` - Listar estoque com filtros
-- `POST /inventory` - Criar registro de estoque
-- `GET /inventory/:id` - Obter registro específico
-- `PATCH /inventory/:id` - Atualizar estoque
-- `DELETE /inventory/:id` - Remover registro
-- `GET /inventory/low-stock` - Produtos com estoque baixo
-
-#### 💰 Quotes Module
-Sistema de orçamentos com fluxo de aprovação.
-
-**Endpoints:**
-- `GET /quotes` - Listar orçamentos com filtros
-- `POST /quotes` - Criar novo orçamento
-- `GET /quotes/:id` - Obter orçamento específico
-- `PATCH /quotes/:id` - Atualizar orçamento
-- `PATCH /quotes/:id/submit` - Enviar orçamento
-- `PATCH /quotes/:id/approve` - Aprovar orçamento
-- `PATCH /quotes/:id/reject` - Rejeitar orçamento
-- `DELETE /quotes/:id` - Remover orçamento
-
-#### 📋 Orders Module
-Sistema de pedidos com fluxo de produção completo.
-
-**Endpoints:**
-- `GET /orders` - Listar pedidos com filtros
-- `POST /orders` - Criar novo pedido
-- `GET /orders/:id` - Obter pedido específico
-- `PATCH /orders/:id` - Atualizar pedido
-- `PATCH /orders/:id/confirm` - Confirmar pedido
-- `PATCH /orders/:id/start-production` - Iniciar produção
-- `PATCH /orders/:id/mark-ready` - Marcar como pronto
-- `PATCH /orders/:id/ship` - Enviar pedido
-- `PATCH /orders/:id/deliver` - Entregar pedido
-- `PATCH /orders/:id/cancel` - Cancelar pedido
-
-#### 🎫 Tickets Module
-Sistema de suporte ao cliente com mensagens.
-
-**Endpoints:**
-- `GET /tickets` - Listar tickets com filtros
-- `POST /tickets` - Criar novo ticket
-- `GET /tickets/:id` - Obter ticket específico
-- `PATCH /tickets/:id` - Atualizar ticket
-- `POST /tickets/:id/messages` - Adicionar mensagem
-- `PATCH /tickets/:id/assign` - Atribuir ticket
-- `PATCH /tickets/:id/progress` - Marcar em progresso
-- `PATCH /tickets/:id/resolve` - Resolver ticket
-- `PATCH /tickets/:id/close` - Fechar ticket
-- `PATCH /tickets/:id/reopen` - Reabrir ticket
-
-#### 📊 Audit Logs Module
-Sistema de auditoria para rastreamento de ações.
-
-**Endpoints:**
-- `GET /audit-logs` - Listar logs com filtros
-- `POST /audit-logs` - Criar log de auditoria
-- `GET /audit-logs/:id` - Obter log específico
-- `GET /audit-logs/stats` - Estatísticas de auditoria
-
-#### 🏥 Health Module
-Health checks para monitoramento da aplicação.
-
-**Endpoints:**
-- `GET /health` - Status geral da aplicação
-- `GET /health/database` - Status do banco de dados
-- `GET /health/storage` - Status do storage
-
-### DTOs e Validação
-
-#### Exemplo de DTO com Validação
+### **Exemplo de Uso**
 
 ```typescript
-import { IsEmail, IsString, MinLength, IsOptional } from 'class-validator';
-import { ApiProperty } from '@nestjs/swagger';
+// No frontend (JavaScript)
+import { getAuth, signInWithEmailAndPassword } from 'firebase/auth';
 
-export class CreateUserDto {
-  @ApiProperty({ description: 'Email do usuário' })
-  @IsEmail({}, { message: 'Email deve ter formato válido' })
-  email: string;
+const auth = getAuth();
+const userCredential = await signInWithEmailAndPassword(auth, email, password);
+const idToken = await userCredential.user.getIdToken();
 
-  @ApiProperty({ description: 'Senha do usuário', minLength: 6 })
-  @IsString()
-  @MinLength(6, { message: 'Senha deve ter pelo menos 6 caracteres' })
-  password: string;
-
-  @ApiProperty({ description: 'Nome completo', required: false })
-  @IsOptional()
-  @IsString()
-  fullName?: string;
-}
-```
-
-### Entities
-
-#### Exemplo de Entity
-
-```typescript
-export class Product {
-  id: string;
-  name: string;
-  description: string;
-  price: number;
-  categoryId: string;
-  images: string[];
-  specifications: Record<string, any>;
-  productionTime: number;
-  active: boolean;
-  featured: boolean;
-  tags: string[];
-  createdAt: Date;
-  updatedAt: Date;
-}
-```
-
-## 🔌 API Endpoints
-
-### Autenticação
-
-#### POST /auth/login
-Autentica um usuário no sistema.
-
-**Request Body:**
-```json
-{
-  "email": "usuario@exemplo.com",
-  "password": "senha123"
-}
-```
-
-**Response:**
-```json
-{
-  "success": true,
-  "message": "Login realizado com sucesso",
-  "data": {
-    "user": {
-      "id": "user_123",
-      "email": "usuario@exemplo.com",
-      "fullName": "João Silva"
-    },
-    "token": "eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9...",
-    "expiresIn": "7d"
-  },
-  "timestamp": "2025-08-28T18:30:00.000Z"
-}
-```
-
-### Produtos
-
-#### GET /products
-Lista produtos com filtros opcionais.
-
-**Query Parameters:**
-- `page` (number): Número da página (padrão: 1)
-- `limit` (number): Itens por página (padrão: 10)
-- `search` (string): Termo de busca
-- `categoryId` (string): Filtrar por categoria
-- `minPrice` (number): Preço mínimo
-- `maxPrice` (number): Preço máximo
-- `active` (boolean): Apenas produtos ativos
-- `featured` (boolean): Apenas produtos em destaque
-
-**Response:**
-```json
-{
-  "success": true,
-  "message": "Produtos encontrados com sucesso",
-  "data": [
-    {
-      "id": "prod_123",
-      "name": "Peça Usinada Especial",
-      "description": "Peça de alta precisão...",
-      "price": 150.00,
-      "categoryId": "cat_123",
-      "images": ["image1.jpg", "image2.jpg"],
-      "productionTime": 5,
-      "active": true,
-      "featured": false
-    }
-  ],
-  "pagination": {
-    "page": 1,
-    "limit": 10,
-    "total": 25,
-    "totalPages": 3
-  },
-  "timestamp": "2025-08-28T18:30:00.000Z"
-}
-```
-
-### Pedidos
-
-#### POST /orders
-Cria um novo pedido/orçamento.
-
-**Request Body:**
-```json
-{
-  "customerName": "João Silva",
-  "customerEmail": "joao@exemplo.com",
-  "customerPhone": "(11) 99999-9999",
-  "customerCompany": "Empresa LTDA",
-  "items": [
-    {
-      "productId": "prod_123",
-      "quantity": 2,
-      "specifications": {
-        "material": "Aço inox",
-        "acabamento": "Polido"
-      }
-    }
-  ],
-  "notes": "Observações especiais do pedido"
-}
-```
-
-## 🔒 Autenticação
-
-### Estratégia JWT (Preparada)
-
-O sistema está preparado para implementar autenticação JWT:
-
-```typescript
-// Middleware de autenticação (exemplo)
-@Injectable()
-export class JwtAuthGuard implements CanActivate {
-  canActivate(context: ExecutionContext): boolean {
-    const request = context.switchToHttp().getRequest();
-    const token = request.headers.authorization?.replace('Bearer ', '');
-    
-    if (!token) {
-      throw new UnauthorizedException('Token não fornecido');
-    }
-    
-    // Validar token JWT
-    // Implementar lógica de validação
-    
-    return true;
+// Fazer requisição para API
+fetch('/api/products', {
+  headers: {
+    'Authorization': `Bearer ${idToken}`,
+    'Content-Type': 'application/json'
   }
-}
-```
-
-### Proteção de Rotas
-
-```typescript
-@Controller('products')
-@UseGuards(JwtAuthGuard) // Proteger todo o controller
-export class ProductsController {
-  
-  @Get()
-  @Public() // Rota pública específica
-  findAll() {
-    // Lógica do endpoint
-  }
-}
-```
-
-## ✅ Validação e DTOs
-
-### Sistema de Validação
-
-O sistema utiliza `class-validator` para validação automática:
-
-```typescript
-import { 
-  IsString, 
-  IsNumber, 
-  IsEmail, 
-  IsOptional, 
-  Min, 
-  Max,
-  IsArray,
-  ValidateNested 
-} from 'class-validator';
-
-export class CreateProductDto {
-  @IsString({ message: 'Nome deve ser uma string' })
-  @MinLength(3, { message: 'Nome deve ter pelo menos 3 caracteres' })
-  name: string;
-
-  @IsNumber({}, { message: 'Preço deve ser um número' })
-  @Min(0, { message: 'Preço deve ser positivo' })
-  price: number;
-
-  @IsOptional()
-  @IsArray()
-  @IsString({ each: true })
-  tags?: string[];
-}
-```
-
-### Transformação Automática
-
-```typescript
-import { Transform } from 'class-transformer';
-
-export class QueryProductsDto {
-  @Transform(({ value }) => parseInt(value))
-  @IsNumber()
-  @Min(1)
-  page: number = 1;
-
-  @Transform(({ value }) => parseInt(value))
-  @IsNumber()
-  @Min(1)
-  @Max(100)
-  limit: number = 10;
-}
-```
-
-## 🚨 Tratamento de Erros
-
-### Filtro Global de Exceções
-
-```typescript
-@Catch()
-export class AllExceptionsFilter implements ExceptionFilter {
-  catch(exception: unknown, host: ArgumentsHost) {
-    const ctx = host.switchToHttp();
-    const response = ctx.getResponse<Response>();
-    const request = ctx.getRequest<Request>();
-
-    const status = exception instanceof HttpException 
-      ? exception.getStatus() 
-      : HttpStatus.INTERNAL_SERVER_ERROR;
-
-    const message = exception instanceof HttpException
-      ? exception.getResponse()
-      : 'Erro interno do servidor';
-
-    response.status(status).json({
-      success: false,
-      message,
-      timestamp: new Date().toISOString(),
-      path: request.url,
-    });
-  }
-}
-```
-
-### Tipos de Erro Padronizados
-
-- **400 Bad Request**: Dados inválidos
-- **401 Unauthorized**: Não autenticado
-- **403 Forbidden**: Sem permissão
-- **404 Not Found**: Recurso não encontrado
-- **422 Unprocessable Entity**: Validação falhou
-- **500 Internal Server Error**: Erro interno
-
-## 📊 Logging
-
-### Interceptor de Logging
-
-```typescript
-@Injectable()
-export class LoggingInterceptor implements NestInterceptor {
-  intercept(context: ExecutionContext, next: CallHandler): Observable<any> {
-    const request = context.switchToHttp().getRequest();
-    const method = request.method;
-    const url = request.url;
-    const now = Date.now();
-
-    console.log(`[${method}] ${url} - Iniciado`);
-
-    return next.handle().pipe(
-      tap(() => {
-        const duration = Date.now() - now;
-        console.log(`[${method}] ${url} - Concluído em ${duration}ms`);
-      }),
-    );
-  }
-}
-```
-
-## 🧪 Testes
-
-### Estrutura de Testes
-
-```bash
-src/
-├── auth/
-│   ├── auth.controller.spec.ts
-│   ├── auth.service.spec.ts
-│   └── __mocks__/
-├── products/
-│   ├── products.controller.spec.ts
-│   └── products.service.spec.ts
-└── test/
-    ├── app.e2e-spec.ts
-    └── jest-e2e.json
-```
-
-### Exemplo de Teste Unitário
-
-```typescript
-describe('ProductsService', () => {
-  let service: ProductsService;
-
-  beforeEach(async () => {
-    const module: TestingModule = await Test.createTestingModule({
-      providers: [ProductsService],
-    }).compile();
-
-    service = module.get<ProductsService>(ProductsService);
-  });
-
-  it('should be defined', () => {
-    expect(service).toBeDefined();
-  });
-
-  it('should return paginated products', async () => {
-    const query = new QueryProductsDto();
-    const result = await service.findAll(query);
-    
-    expect(result.success).toBe(true);
-    expect(result.data).toBeInstanceOf(Array);
-    expect(result.pagination).toBeDefined();
-  });
 });
 ```
 
-### Comandos de Teste
+## 👥 Sistema RBAC
 
-```bash
-# Testes unitários
-npm run test
+### **Roles Disponíveis**
 
-# Testes e2e
-npm run test:e2e
+| Role | Descrição | Permissões |
+|------|-----------|------------|
+| **admin** | Administrador | Gerencia tudo (usuários, produtos, pedidos, pagamentos) |
+| **operator** | Operador | Cria/edita/exclui produtos, movimenta estoque, muda status de pedidos |
+| **client** | Cliente | Navega produtos, faz compras, consulta seus pedidos |
 
-# Coverage
-npm run test:cov
+### **Aplicação de Roles**
 
-# Watch mode
-npm run test:watch
+```typescript
+// Proteger rota apenas para admins
+@UseGuards(FirebaseAuthGuard, RolesGuard)
+@Roles(Role.ADMIN)
+@Delete('products/:id')
+async deleteProduct(@Param('id') id: string) {
+  // Apenas admins podem deletar produtos
+}
+
+// Proteger rota para admins e operadores
+@UseGuards(FirebaseAuthGuard, RolesGuard)
+@Roles(Role.ADMIN, Role.OPERATOR)
+@Post('products')
+async createProduct(@Body() productData: CreateProductDto) {
+  // Admins e operadores podem criar produtos
+}
+
+// Proteger rota para usuários autenticados
+@UseGuards(FirebaseAuthGuard)
+@Get('profile')
+async getProfile(@Request() req) {
+  // Qualquer usuário autenticado pode ver seu perfil
+}
 ```
+
+### **Configuração de Roles no Firebase**
+
+```typescript
+// Definir role para usuário (apenas admins podem fazer isso)
+await admin.auth().setCustomUserClaims(uid, { role: 'admin' });
+```
+
+## 💳 Integração de Pagamentos
+
+### **Fluxo de Pagamento**
+
+1. **Cliente**: Cria pedido
+2. **Backend**: Gera checkout no Asaas
+3. **Asaas**: Retorna dados de pagamento (PIX, boleto, etc.)
+4. **Cliente**: Realiza pagamento
+5. **Asaas**: Envia webhook para backend
+6. **Backend**: Atualiza status do pedido
+
+### **Endpoints de Pagamento**
+
+```typescript
+// Criar checkout
+POST /api/payments/checkout
+{
+  "customerName": "João Silva",
+  "customerEmail": "joao@email.com",
+  "amount": 150.00,
+  "description": "Pedido #123",
+  "externalReference": "order_123"
+}
+
+// Consultar pagamento
+GET /api/payments/{paymentId}
+
+// Webhook do Asaas
+POST /api/webhooks/asaas
+```
+
+### **Exemplo de Checkout**
+
+```typescript
+const checkout = await fetch('/api/payments/checkout', {
+  method: 'POST',
+  headers: {
+    'Authorization': `Bearer ${idToken}`,
+    'Content-Type': 'application/json'
+  },
+  body: JSON.stringify({
+    customerName: 'João Silva',
+    amount: 150.00,
+    description: 'Pedido #123',
+    externalReference: 'order_123'
+  })
+});
+
+const result = await checkout.json();
+// result.data.pixQrCode - QR Code para pagamento PIX
+// result.data.invoiceUrl - URL do boleto
+```
+
+## 🛣️ API Endpoints
+
+### **Autenticação**
+- `GET /api/auth/profile` - Perfil do usuário autenticado
+- `POST /api/auth/validate` - Validar token Firebase
+- `GET /api/auth/users` - Listar usuários (Admin)
+- `PUT /api/auth/users/:uid/role` - Atualizar role (Admin)
+- `POST /api/auth/users` - Criar usuário (Admin)
+- `DELETE /api/auth/users/:uid` - Deletar usuário (Admin)
+
+### **Produtos**
+- `GET /api/products` - Listar produtos (Público)
+- `GET /api/products/:id` - Buscar produto (Público)
+- `POST /api/products` - Criar produto (Admin/Operator)
+- `PATCH /api/products/:id` - Atualizar produto (Admin/Operator)
+- `DELETE /api/products/:id` - Deletar produto (Admin)
+
+### **Pedidos**
+- `GET /api/orders` - Listar todos os pedidos (Admin/Operator)
+- `GET /api/orders/my-orders` - Meus pedidos (Cliente)
+- `GET /api/orders/:id` - Buscar pedido
+- `POST /api/orders` - Criar pedido (Autenticado)
+- `PATCH /api/orders/:id` - Atualizar pedido (Admin/Operator)
+- `PATCH /api/orders/:id/status` - Atualizar status (Admin/Operator)
+- `DELETE /api/orders/:id` - Deletar pedido (Admin)
+
+### **Pagamentos**
+- `POST /api/payments/checkout` - Criar checkout (Autenticado)
+- `GET /api/payments/:id` - Consultar pagamento (Autenticado)
+- `POST /api/webhooks/asaas` - Webhook Asaas (Público)
 
 ## 🚀 Deploy
 
-### Preparação para Produção
+### **Variáveis de Ambiente Obrigatórias**
 
-1. **Build da aplicação**
+```env
+# Servidor
+PORT=3001
+NODE_ENV=production
+
+# Firebase
+FIREBASE_PROJECT_ID=seu-projeto-firebase
+FIREBASE_PRIVATE_KEY="-----BEGIN PRIVATE KEY-----\n...\n-----END PRIVATE KEY-----\n"
+FIREBASE_CLIENT_EMAIL=firebase-adminsdk-xxxxx@seu-projeto.iam.gserviceaccount.com
+
+# Asaas
+ASAAS_API_KEY=sua-chave-api-asaas
+ASAAS_ENV=production
+ASAAS_WEBHOOK_SECRET=seu-secret-webhook-asaas
+
+# Database
+DATABASE_HOST=seu-host-postgres
+DATABASE_PORT=5432
+DATABASE_USERNAME=postgres
+DATABASE_PASSWORD=sua-senha
+DATABASE_NAME=letorneadora
+```
+
+### **Build e Deploy**
+
 ```bash
+# Build
 npm run build
+
+# Executar em produção
+npm run start:prod
 ```
 
-2. **Configuração de produção**
-```env
-NODE_ENV=production
-PORT=3000
-DATABASE_URL=production_database_url
-JWT_SECRET=strong_production_secret
-```
+## 📖 Documentação da API
 
-3. **Otimizações**
-- Compressão gzip habilitada
-- Rate limiting configurado
-- Logs estruturados
-- Health checks implementados
+Acesse a documentação interativa em: `http://localhost:3001/api/docs`
 
-### Docker (Opcional)
-
-```dockerfile
-FROM node:18-alpine
-
-WORKDIR /app
-
-COPY package*.json ./
-RUN npm ci --only=production
-
-COPY dist ./dist
-
-EXPOSE 3000
-
-CMD ["node", "dist/main"]
-```
-
-### Variáveis de Ambiente Produção
-
-```env
-# Aplicação
-NODE_ENV=production
-PORT=3000
-
-# Banco de dados
-DATABASE_URL=postgresql://user:pass@host:5432/db
-SUPABASE_URL=https://your-project.supabase.co
-SUPABASE_ANON_KEY=your-anon-key
-
-# Autenticação
-JWT_SECRET=your-super-secret-jwt-key
-JWT_EXPIRES_IN=7d
-
-# CORS
-FRONTEND_URL=https://your-frontend-domain.com
-
-# Logs
-LOG_LEVEL=info
-```
+A documentação Swagger inclui:
+- Todos os endpoints disponíveis
+- Schemas de request/response
+- Exemplos de uso
+- Informações de autenticação
+- Códigos de status HTTP
 
 ## 🤝 Contribuição
 
-### Padrões de Código
+1. Fork o projeto
+2. Crie uma branch para sua feature (`git checkout -b feature/nova-feature`)
+3. Commit suas mudanças (`git commit -am 'Adiciona nova feature'`)
+4. Push para a branch (`git push origin feature/nova-feature`)
+5. Abra um Pull Request
 
-1. **TypeScript**: Sempre tipado
-2. **ESLint**: Configuração padrão NestJS
-3. **Prettier**: Formatação automática
-4. **Commits**: Conventional Commits
+## 📝 Changelog
 
-### Workflow de Desenvolvimento
+### v2.0.0 - Refatoração Firebase Auth
+- ✅ Removido JWT, implementado Firebase Auth
+- ✅ Sistema RBAC com 3 roles (admin/operator/client)
+- ✅ Integração inicial com Asaas para pagamentos
+- ✅ Guards personalizados para Firebase
+- ✅ Endpoints de gerenciamento de usuários
+- ✅ Webhooks para atualização de status de pagamento
 
-1. Fork do repositório
-2. Criar branch feature: `git checkout -b feature/nova-funcionalidade`
-3. Commit das mudanças: `git commit -m 'feat: adiciona nova funcionalidade'`
-4. Push para branch: `git push origin feature/nova-funcionalidade`
-5. Abrir Pull Request
+### v1.0.0 - Versão Inicial
+- ✅ Estrutura base com NestJS
+- ✅ CRUD de produtos e pedidos
+- ✅ Documentação Swagger
+- ✅ Validação de dados
 
-### Scripts Disponíveis
+## 📄 Licença
 
-```bash
-# Desenvolvimento
-npm run start:dev      # Servidor com hot reload
-npm run start:debug    # Servidor com debug
-
-# Build
-npm run build          # Build para produção
-npm run start:prod     # Executar build de produção
-
-# Qualidade
-npm run lint           # Verificar código
-npm run lint:fix       # Corrigir problemas
-npm run format         # Formatar código
-
-# Testes
-npm run test           # Testes unitários
-npm run test:watch     # Testes em watch mode
-npm run test:cov       # Coverage
-npm run test:e2e       # Testes end-to-end
-```
-
-## 📚 Recursos Adicionais
-
-### Documentação Oficial
-- [NestJS Documentation](https://docs.nestjs.com/)
-- [Swagger/OpenAPI](https://swagger.io/docs/)
-- [class-validator](https://github.com/typestack/class-validator)
-
-### Próximos Passos
-
-1. **Integração com Banco Real**
-   - Implementar TypeORM ou Prisma
-   - Migrations automáticas
-   - Seeds de dados
-
-2. **Autenticação Completa**
-   - JWT implementation
-   - Refresh tokens
-   - Role-based access
-
-3. **Monitoramento**
-   - Logs estruturados
-   - Métricas de performance
-   - Health checks avançados
-
-4. **Cache**
-   - Redis integration
-   - Cache de consultas
-   - Invalidação inteligente
+Este projeto está sob a licença MIT. Veja o arquivo [LICENSE](LICENSE) para mais detalhes.
 
 ---
 
-## 📞 Suporte
-
-Para dúvidas ou suporte:
-- **Email**: suporte@letorneadora.com
-- **Documentação**: `/api/docs`
-- **Issues**: GitHub Issues
-
----
-
-**Desenvolvido com ❤️ pela equipe Le Torneadora**
+**Le Torneadora** - Transformando ideias em realidade através da tecnologia 🔧✨
 

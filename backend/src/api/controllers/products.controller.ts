@@ -17,20 +17,21 @@ import { UpdateProductDto } from '../dto/product/update-product.dto';
 import { FilterProductsDto } from '../dto/product/filter-product.dto';
 import { ProductDto } from '../dto/product/product.dto';
 import { PaginationQueryDto, PaginationResponseDto } from '../dto/common.dto';
-// import { Roles } from '../../auth/decorators/roles.decorator';
-// import { RolesGuard } from '../../auth/guards/roles.guard';
-// import { Role } from '../../auth/enums/role.enum';
+import { FirebaseAuthGuard } from '../auth/guards/firebase-auth.guard';
+import { RolesGuard } from '../auth/guards/roles.guard';
+import { Roles } from '../auth/decorators/roles.decorator';
+import { Role } from '../auth/enums/role.enum';
 
 @ApiTags('products')
-@Controller('products') // está correto — NÃO usar @Controller('api/v1/products') se usar setGlobalPrefix
+@Controller('products')
 export class ProductsController {
   constructor(private readonly productsService: ProductsService) {}
 
   @Post()
-  // @UseGuards(RolesGuard)
-  // @Roles(Role.ADMIN, Role.OPERATOR)
-  @ApiBearerAuth('JWT-auth')
-  @ApiOperation({ summary: 'Criar novo produto' })
+  @UseGuards(FirebaseAuthGuard, RolesGuard)
+  @Roles(Role.ADMIN, Role.OPERATOR)
+  @ApiBearerAuth()
+  @ApiOperation({ summary: 'Criar novo produto (Admin/Operator)' })
   @ApiResponse({
     status: 201,
     description: 'Produto criado com sucesso',
@@ -53,7 +54,7 @@ export class ProductsController {
   }
 
   @Get()
-  @ApiOperation({ summary: 'Listar produtos com filtros e paginação' })
+  @ApiOperation({ summary: 'Listar produtos com filtros e paginação (Público)' })
   @ApiResponse({
     status: 200,
     description: 'Lista de produtos recuperada com sucesso',
@@ -64,13 +65,12 @@ export class ProductsController {
     return {
       page: paginationResult.page,
       pageSize: paginationResult.pageSize,
-      // total: paginationResult.total,
-      ...paginationResult, // in case there are other properties
+      ...paginationResult,
     };
   }
 
   @Get(':id')
-  @ApiOperation({ summary: 'Buscar produto por ID' })
+  @ApiOperation({ summary: 'Buscar produto por ID (Público)' })
   @ApiResponse({
     status: 200,
     description: 'Produto encontrado',
@@ -85,10 +85,10 @@ export class ProductsController {
   }
 
   @Patch(':id')
-  // @UseGuards(RolesGuard)
-  // @Roles(Role.ADMIN, Role.OPERATOR)
-  @ApiBearerAuth('JWT-auth')
-  @ApiOperation({ summary: 'Atualizar produto' })
+  @UseGuards(FirebaseAuthGuard, RolesGuard)
+  @Roles(Role.ADMIN, Role.OPERATOR)
+  @ApiBearerAuth()
+  @ApiOperation({ summary: 'Atualizar produto (Admin/Operator)' })
   @ApiResponse({
     status: 200,
     description: 'Produto atualizado com sucesso',
@@ -118,10 +118,10 @@ export class ProductsController {
   }
 
   @Delete(':id')
-  // @UseGuards(RolesGuard)
-  // @Roles(Role.ADMIN)
-  @ApiBearerAuth('JWT-auth')
-  @ApiOperation({ summary: 'Remover produto' })
+  @UseGuards(FirebaseAuthGuard, RolesGuard)
+  @Roles(Role.ADMIN)
+  @ApiBearerAuth()
+  @ApiOperation({ summary: 'Remover produto (Admin apenas)' })
   @ApiResponse({
     status: 200,
     description: 'Produto removido com sucesso',
@@ -142,3 +142,4 @@ export class ProductsController {
     return this.productsService.remove(id);
   }
 }
+

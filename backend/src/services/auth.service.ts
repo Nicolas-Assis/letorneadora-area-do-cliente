@@ -1,68 +1,138 @@
-// import { Injectable, Logger, UnauthorizedException } from '@nestjs/common';
-// import { ConfigService } from '@nestjs/config';
-// import * as jwt from 'jsonwebtoken';
-// import * as jwksRsa from 'jwks-rsa';
+import { Injectable, Logger, OnModuleInit } from '@nestjs/common';
+import { ConfigService } from '@nestjs/config';
+import * as admin from 'firebase-admin';
+import { DecodedIdToken } from 'firebase-admin/auth';
 
-// @Injectable()
-// export class AuthService {
-//   private readonly logger = new Logger(AuthService.name);
-//   private jwksClient: jwksRsa.JwksClient;
+@Injectable()
+export class AuthService implements OnModuleInit {
+  private readonly logger = new Logger(AuthService.name);
 
-//   constructor(private readonly config: ConfigService) {
-//     const jwksUri =
-//       this.config.get<string>('JWKS_URI') ||
-//       this.config.get<string>('SUPABASE_JWKS_URI') ||
-//       // substitua se necessário: 'https://<seu-projeto>.supabase.co/auth/v1/certs'
-//       '';
-//     if (!jwksUri) {
-//       this.logger.warn('JWKS_URI não configurado. validateToken pode falhar.');
-//     }
-//     this.jwksClient = jwksRsa({
-//       jwksUri,
-//       cache: true,
-//       cacheMaxEntries: 5,
-//       cacheMaxAge: 10 * 60 * 1000, // 10 minutos
-//     });
-//   }
+  constructor(private readonly config: ConfigService) {}
 
-//   // Valida o JWT e retorna o payload (ou lança UnauthorizedException)
-//   async validateToken(token: string): Promise<any> {
-//     try {
-//       const decodedHeader: any = jwt.decode(token, { complete: true });
-//       if (!decodedHeader || !decodedHeader.header || !decodedHeader.header.kid) {
-//         this.logger.debug('token sem kid no header');
-//         throw new UnauthorizedException('Invalid token');
-//       }
-//       const kid = decodedHeader.header.kid;
+  onModuleInit() {
+    this.initializeFirebase();
+  }
 
-//       const key = await new Promise<jwksRsa.SigningKey>((resolve, reject) => {
-//         this.jwksClient.getSigningKey(kid, (err, key) => {
-//           if (err || !key) {
-//             reject(err || new Error('Signing key not found'));
-//           } else {
-//             resolve(key);
-//           }
-//         });
-//       });
-//       const publicKey = key.getPublicKey();
+  private initializeFirebase() {
+    try {
+      // Verificar se o Firebase já foi inicializado
+      if (admin.apps.length === 0) {
+        const firebaseConfig = this.getFirebaseConfig();
+        
+        admin.initializeApp({
+          credential: admin.credential.cert(firebaseConfig),
+        });
 
-//       const issuer =
-//         this.config.get<string>('JWT_ISSUER') || this.config.get<string>('SUPABASE_ISSUER');
-//       const audience =
-//         this.config.get<string>('JWT_AUDIENCE') || this.config.get<string>('SUPABASE_AUDIENCE');
+        this.logger.log('Firebase Admin SDK initialized successfully');
+      }
+    } catch (error) {
+      this.logger.error('Failed to initialize Firebase Admin SDK:', error);
+      throw error;
+    }
+  }
 
-//       const options: jwt.VerifyOptions = {
-//         algorithms: ['RS256'],
-//         ...(issuer ? { issuer } : {}),
-//         ...(audience ? { audience } : {}),
-//       };
+  private getFirebaseConfig() {
+    // Configuração pode vir de variáveis de ambiente ou arquivo JSON
+    const projectId = this.config.get<string>('FIREBASE_PROJECT_ID');
+    const privateKey = this.config.get<string>('FIREBASE_PRIVATE_KEY')?.replace(/\\n/g, '\n');
+    const clientEmail = this.config.get<string>('FIREBASE_CLIENT_EMAIL');
 
-//       const payload = jwt.verify(token, publicKey, options);
-//       // opcional: mapear/normalizar payload para user (id, email, roles)
-//       return payload;
-//     } catch (err) {
-//       this.logger.debug('validateToken failed', err as any);
-//       throw new UnauthorizedException('Invalid or expired token');
-//     }
-//   }
-// }
+    if (!projectId || !privateKey || !clientEmail) {
+      throw new Error('Firebase configuration is incomplete. Check FIREBASE_PROJECT_ID, FIREBASE_PRIVATE_KEY, and FIREBASE_CLIENT_EMAIL environment variables.');
+    }
+
+    return {
+      projectId,
+      privateKey,
+      clientEmail,
+    };
+  }
+
+  async verifyIdToken(idToken: string): Promise<DecodedIdToken> {
+    try {
+      const decodedToken = await admin.auth().verifyIdToken(idToken);
+      this.logger.debug(`Token verified for user: ${decodedToken.uid}`);
+      return decodedToken;
+    } catch (error) {
+      this.logger.error('Token verification failed:', error);
+      throw error;
+    }
+  }
+
+  async setCustomUserClaims(uid: string, customClaims: object): Promise<void> {
+    try {
+      await admin.auth().setCustomUserClaims(uid, customClaims);
+      this.logger.debug(`Custom claims set for user: ${uid}`);
+    } catch (error) {
+      this.logger.error('Failed to set custom claims:', error);
+      throw error;
+    }
+  }
+
+  async getUserByUid(uid: string) {
+    try {
+      const userRecord = await admin.auth().getUser(uid);
+      return userRecord;
+    } catch (error) {
+      this.logger.error('Failed to get user:', error);
+      throw error;
+    }
+  }
+
+  async createUser(userData: {
+    email: string;
+    password?: string;
+    displayName?: string;
+    role?: string;
+  }) {
+    try {
+      const userRecord = await admin.auth().createUser({
+        email: userData.email,
+        password: userData.password,
+        displayName: userData.displayName,
+        emailVerified: false,
+      });
+
+      // Definir role padrão como 'client' se não especificado
+      const role = userData.role || 'client';
+      await this.setCustomUserClaims(userRecord.uid, { role });
+
+      this.logger.debug(`User created: ${userRecord.uid} with role: ${role}`);
+      return userRecord;
+    } catch (error) {
+      this.logger.error('Failed to create user:', error);
+      throw error;
+    }
+  }
+
+  async updateUserRole(uid: string, role: string): Promise<void> {
+    try {
+      await this.setCustomUserClaims(uid, { role });
+      this.logger.debug(`Role updated for user ${uid}: ${role}`);
+    } catch (error) {
+      this.logger.error('Failed to update user role:', error);
+      throw error;
+    }
+  }
+
+  async deleteUser(uid: string): Promise<void> {
+    try {
+      await admin.auth().deleteUser(uid);
+      this.logger.debug(`User deleted: ${uid}`);
+    } catch (error) {
+      this.logger.error('Failed to delete user:', error);
+      throw error;
+    }
+  }
+
+  async listUsers(maxResults: number = 1000) {
+    try {
+      const listUsersResult = await admin.auth().listUsers(maxResults);
+      return listUsersResult.users;
+    } catch (error) {
+      this.logger.error('Failed to list users:', error);
+      throw error;
+    }
+  }
+}
+
