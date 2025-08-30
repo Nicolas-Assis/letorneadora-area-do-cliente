@@ -11,7 +11,7 @@ import {
 } from 'class-validator';
 import { Transform } from 'class-transformer';
 import { PaginationQueryDto } from '../common.dto';
-// import { OrderStatus } from '../../entities/order.entity';
+import { OrderStatus } from '../../entities/order.entity';
 
 export class FilterOrdersDto extends PaginationQueryDto {
   @ApiPropertyOptional({
@@ -22,14 +22,22 @@ export class FilterOrdersDto extends PaginationQueryDto {
   @IsString()
   profileId?: string;
 
-  // @ApiPropertyOptional({
-  //   description: 'Status do pedido',
-  //   enum: OrderStatus,
-  //   example: OrderStatus.CONFIRMED,
-  // })
-  // @IsOptional()
-  // @IsEnum(OrderStatus)
-  // status?: OrderStatus;
+  @ApiPropertyOptional({
+    description: 'ID do usuário para filtrar',
+    example: 'firebase-uid',
+  })
+  @IsOptional()
+  @IsString()
+  userId?: string;
+
+  @ApiPropertyOptional({
+    description: 'Status do pedido',
+    enum: OrderStatus,
+    example: OrderStatus.CONFIRMED,
+  })
+  @IsOptional()
+  @IsEnum(OrderStatus)
+  status?: OrderStatus;
 
   @ApiPropertyOptional({
     description: 'ID do orçamento relacionado',

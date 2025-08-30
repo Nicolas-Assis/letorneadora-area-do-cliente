@@ -1,5 +1,5 @@
 import { ApiProperty } from '@nestjs/swagger';
-// import { OrderStatus } from '../../entities/order.entity';
+import { OrderStatus } from '../../entities/order.entity';
 
 export class ProfileSummaryDto {
   @ApiProperty({
@@ -38,8 +38,22 @@ export class ProductSummaryDto {
   @ApiProperty({
     description: 'Slug do produto',
     example: 'peca-usinagem-cnc',
+    required: false,
   })
-  slug: string;
+  slug?: string;
+
+  @ApiProperty({
+    description: 'Descrição do produto',
+    example: 'Peça de alta precisão',
+    required: false,
+  })
+  description?: string;
+
+  @ApiProperty({
+    description: 'Preço do produto',
+    example: 150.5,
+  })
+  price: number;
 }
 
 export class OrderItemDto {
@@ -68,12 +82,6 @@ export class OrderItemDto {
   unitPrice: number;
 
   @ApiProperty({
-    description: 'Subtotal do item',
-    example: 752.5,
-  })
-  subtotal: number;
-
-  @ApiProperty({
     description: 'Dados do produto',
     type: ProductSummaryDto,
     required: false,
@@ -89,17 +97,23 @@ export class OrderDto {
   id: number;
 
   @ApiProperty({
-    description: 'ID do perfil do cliente',
-    example: 'uuid-do-cliente',
+    description: 'ID do usuário Firebase',
+    example: 'firebase-uid-123',
   })
   userId: string;
 
-  // @ApiProperty({
-  //   description: 'Status do pedido',
-  //   enum: OrderStatus,
-  //   example: OrderStatus.CONFIRMED,
-  // })
-  // status: OrderStatus;
+  @ApiProperty({
+    description: 'Email do usuário',
+    example: 'usuario@email.com',
+  })
+  userEmail: string;
+
+  @ApiProperty({
+    description: 'Status do pedido',
+    enum: OrderStatus,
+    example: OrderStatus.CONFIRMED,
+  })
+  status: OrderStatus;
 
   @ApiProperty({
     description: 'Total do pedido',
@@ -113,13 +127,6 @@ export class OrderDto {
     required: false,
   })
   notes?: string;
-
-  @ApiProperty({
-    description: 'ID do orçamento relacionado',
-    example: 1,
-    required: false,
-  })
-  quoteId?: number;
 
   @ApiProperty({
     description: 'Data estimada de entrega',
@@ -148,16 +155,10 @@ export class OrderDto {
   updatedAt: Date;
 
   @ApiProperty({
-    description: 'Dados do cliente',
-    type: ProfileSummaryDto,
-    required: false,
-  })
-  profile?: ProfileSummaryDto;
-
-  @ApiProperty({
     description: 'Itens do pedido',
     type: [OrderItemDto],
     required: false,
   })
   items?: OrderItemDto[];
 }
+
